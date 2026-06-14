@@ -1,6 +1,7 @@
 from django.db import models
 
 from apps.attractions.models import Attraction
+from .calculation_service import RouteCalculationService
 
 
 class TravelRoute(models.Model):
@@ -32,21 +33,19 @@ class TravelRoute(models.Model):
 
     @property
     def ticket_total(self):
-        return sum(stop.attraction.ticket_price for stop in self.stops.select_related("attraction"))
+        return RouteCalculationService.calculate_ticket_total(self)
 
     @property
     def estimated_cost(self):
-        return self.base_cost + self.guide_fee + self.ticket_total
+        return RouteCalculationService.calculate_estimated_cost(self)
 
     @property
     def enrolled_count(self):
-        return sum(booking.party_size for booking in self.bookings.exclude(status="cancelled"))
+        return RouteCalculationService.calculate_enrolled_count(self)
 
     @property
     def group_progress(self):
-        if self.min_group_size == 0:
-            return 100
-        return min(round(self.enrolled_count / self.min_group_size * 100), 100)
+        return RouteCalculationService.calculate_group_progress(self)
 
 
 class RouteStop(models.Model):
