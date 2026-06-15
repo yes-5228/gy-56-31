@@ -4,6 +4,22 @@ from apps.attractions.models import Attraction
 from .calculation_service import RouteCalculationService
 
 
+class TravelRouteQuerySet(models.QuerySet):
+    def with_annotations(self):
+        base_annotations, step2_annotations, step3_annotations = (
+            RouteCalculationService.build_annotations(route_outer_ref="pk", prefix="")
+        )
+        return (
+            self.annotate(**base_annotations)
+            .annotate(**step2_annotations)
+            .annotate(**step3_annotations)
+        )
+
+
+class TravelRouteManager(models.Manager.from_queryset(TravelRouteQuerySet)):
+    pass
+
+
 class TravelRoute(models.Model):
     STATUS_CHOICES = [
         ("draft", "草稿"),
@@ -25,6 +41,8 @@ class TravelRoute(models.Model):
     description = models.TextField("行程简介", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    objects = TravelRouteManager()
+
     class Meta:
         ordering = ["-created_at", "id"]
 
@@ -33,18 +51,26 @@ class TravelRoute(models.Model):
 
     @property
     def ticket_total(self):
+        if hasattr(self, "_annotated_ticket_total"):
+            return self._annotated_ticket_total
         return RouteCalculationService.calculate_ticket_total(self)
 
     @property
     def estimated_cost(self):
+        if hasattr(self, "_annotated_estimated_cost"):
+            return self._annotated_estimated_cost
         return RouteCalculationService.calculate_estimated_cost(self)
 
     @property
     def enrolled_count(self):
+        if hasattr(self, "_annotated_enrolled_count"):
+            return self._annotated_enrolled_count
         return RouteCalculationService.calculate_enrolled_count(self)
 
     @property
     def group_progress(self):
+        if hasattr(self, "_annotated_group_progress"):
+            return self._annotated_group_progress
         return RouteCalculationService.calculate_group_progress(self)
 
 

@@ -9,7 +9,8 @@ class TravelRouteViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = (
-            TravelRoute.objects.prefetch_related("stops__attraction", "bookings")
+            TravelRoute.objects.with_annotations()
+            .prefetch_related("stops__attraction")
             .all()
         )
         status = self.request.query_params.get("status")
