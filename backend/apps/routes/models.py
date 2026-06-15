@@ -49,6 +49,30 @@ class TravelRoute(models.Model):
     def __str__(self):
         return self.title
 
+    _ANNOTATED_FIELDS = [
+        "_annotated_ticket_total",
+        "_annotated_enrolled_count",
+        "_annotated_estimated_cost",
+        "_annotated_group_progress",
+        "_annotated_group_progress_temp",
+    ]
+
+    def clear_calculation_cache(self):
+        for field in self._ANNOTATED_FIELDS:
+            if hasattr(self, field):
+                delattr(self, field)
+
+    def refresh_calculations(self):
+        self.clear_calculation_cache()
+        fresh = (
+            TravelRoute.objects.with_annotations().filter(pk=self.pk).first()
+        )
+        if fresh:
+            for field in self._ANNOTATED_FIELDS:
+                if hasattr(fresh, field):
+                    setattr(self, field, getattr(fresh, field))
+        return self
+
     @property
     def ticket_total(self):
         if hasattr(self, "_annotated_ticket_total"):
